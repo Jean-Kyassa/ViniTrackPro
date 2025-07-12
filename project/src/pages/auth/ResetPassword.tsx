@@ -1,0 +1,154 @@
+import React, { useState, useEffect } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Lock, ArrowLeft, Wine, CheckCircle } from 'lucide-react';
+import { authService } from '../../services/authService';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Card } from '../../components/ui/Card';
+
+export const ResetPassword: React.FC = () => {
+  const { token } = useParams<{ token: string }>();
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (!token) {
+      navigate('/login');
+    }
+  }, [token, navigate]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    if (formData.newPassword !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+
+    if (formData.newPassword.length < 6) {
+      setError('Password must be at least 6 characters long');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      await authService.resetPassword({
+        token: token!,
+        newPassword: formData.newPassword,
+      });
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to reset password');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-900 via-blue-900 to-purple-900 flex items-center justify-center p-4">
+        <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-center">
+          <div className="text-green-400 mb-4">
+            <CheckCircle className="h-16 w-16 mx-auto" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Password Reset Successful!</h2>
+          <p className="text-white/70 mb-4">
+            Your password has been reset successfully. Redirecting to login...
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/20" />
+      
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 -left-40 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-md">
+        <Link 
+          to="/login" 
+          className="inline-flex items-center text-white/80 hover:text-white mb-8 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Login
+        </Link>
+
+        <Card className="bg-white/10 backdrop-blur-lg border-white/20">
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <div className="bg-blue-600 p-3 rounded-full">
+                <Wine className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Set New Password</h2>
+            <p className="text-white/70">Enter your new password below</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            <Input
+              label="New Password"
+              type="password"
+              name="newPassword"
+              value={formData.newPassword}
+              onChange={handleChange}
+              required
+              icon={Lock}
+              className="bg-white/10 border-white/20 text-white placeholder-white/50"
+            />
+
+            <Input
+              label="Confirm New Password"
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
+              icon={Lock}
+              className="bg-white/10 border-white/20 text-white placeholder-white/50"
+            />
+
+            <Button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
+              isLoading={isLoading}
+              icon={Lock}
+            >
+              Reset Password
+            </Button>
+          </form>
+        </Card>
+      </div>
+    </div>
+  );
+};
